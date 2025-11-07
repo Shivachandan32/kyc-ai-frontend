@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KYC-AI Compliance Intelligence Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --primary:#0078d4;--success:#00a86b;--warning:#ffb300;--danger:#d9534f;
+      --bg-light:#f5f7fa;--bg-dark:#1e1e1e;--text-light:#222;--text-dark:#e0e0e0;
+      --card-light:#fff;--card-dark:#2b2b2b
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Segoe UI",sans-serif;background:var(--bg-light);color:var(--text-light);margin:0;transition:.3s}
+    body.dark{background:var(--bg-dark);color:var(--text-dark)}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--primary);color:#fff}
+    header h1{font-size:20px;margin:0}
+    .actions{display:flex;gap:8px;align-items:center}
+    button, .chip{border:0;border-radius:8px;padding:8px 12px;cursor:pointer}
+    .btn{background:#fff;color:#0e61a8;font-weight:600}
+    .chip{background:rgba(255,255,255,.2);color:#fff}
+    .container{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px;padding:22px}
+    .card{background:var(--card-light);border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:.3s}
+    body.dark .card{background:var(--card-dark)}
+    h3{margin:0 0 8px;color:var(--primary);font-size:1.05rem}
+    .insights{grid-column:1/-1;background:linear-gradient(90deg,#0078d4,#00a86b);color:#fff;border-radius:12px;padding:16px 18px}
+    .stats{display:flex;gap:10px;margin-top:10px}
+    .stat{flex:1;background:rgba(0,120,212,.1);padding:10px 12px;border-radius:10px;text-align:center}
+    .stat span{display:block;font-size:20px;font-weight:700;color:var(--primary)}
+    canvas{max-height:300px}
+    /* Alerts table */
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    td,th{padding:8px 10px;border-bottom:1px solid #e6e6e6}
+    body.dark td,body.dark th{border-bottom:1px solid #3a3a3a}
+    .tag{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
+    .low{background:rgba(0,168,107,.15);color:#00a86b}
+    .med{background:rgba(255,179,0,.2);color:#b77700}
+    .high{background:rgba(217,83,79,.18);color:#d9534f}
+    .unk{background:rgba(120,120,120,.25);color:#888}
+    footer{text-align:center;padding:10px 0 18px;color:#777;font-size:.9rem}
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🧾 KYC-AI Compliance Intelligence</h1>
+    <div class="actions">
+      <span class="chip">Auto-refresh: <strong id="autoState">ON</strong></span>
+      <button class="btn" id="refreshBtn">Refresh</button>
+      <button class="btn" id="themeBtn">Toggle Theme</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="insights" id="aiInsights"><strong>Analyzing trends…</strong> Please wait while AI insights load.</div>
+
+    <div class="card">
+      <h3>📊 Uploads Over Time</h3>
+      <canvas id="uploadsChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>⚖️ Risk Level Distribution</h3>
+      <canvas id="riskChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>📄 Document Type Mix</h3>
+      <canvas id="docChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>✅ Average Completeness</h3>
+      <div class="stats">
+        <div class="stat"><span id="totalUploads">0</span>Total Uploads</div>
+        <div class="stat"><span id="avgCompleteness">0%</span>Completeness</div>
+      </div>
+      <p style="text-align:center;margin:10px 0 0">Last Updated: <span id="lastUpdated">--</span></p>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h3>🚨 Alerts & Recent Activity</h3>
+      <table id="alertsTable">
+        <thead>
+          <tr>
+            <th style="width:28%">File</th>
+            <th style="width:15%">Document</th>
+            <th style="width:15%">Risk</th>
+            <th>Notes</th>
+            <th style="width:18%">When</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>Powered by KYC-AI • Intelligent Risk, Fraud & Compliance Analytics</footer>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+    const M = {
+      summary: () => fetch(`${API_BASE}/dashboard/metrics/summary`).then(r=>r.json()),
+      timeseries: () => fetch(`${API_BASE}/dashboard/metrics/timeseries?days=14`).then(r=>r.json()),
+      audit: () => fetch(`${API_BASE}/audit/`).then(r=>r.json())
+    };
+
+    let charts = { uploads:null, risk:null, doc:null };
+    let autoTimer = null;
+
+    function tag(level){
+      const norm = (level||"Unknown").toLowerCase();
+      if(norm==="low") return `<span class="tag low">Low</span>`;
+      if(norm==="medium") return `<span class="tag med">Medium</span>`;
+      if(norm==="high") return `<span class="tag high">High</span>`;
+      return `<span class="tag unk">Unknown</span>`;
+    }
+
+    // 🔍 AI Insight Generator
+    function generateInsights(summary, timeseries) {
+      const total = summary?.totals?.uploads || 0;
+      const low = summary?.risk_counts?.Low || 0;
+      const med = summary?.risk_counts?.Medium || 0;
+      const high = summary?.risk_counts?.High || 0;
+      const unknownDocs = summary?.doc_counts?.Unknown || 0;
+      const completeness = summary?.avg_completeness ?? 0;
+
+      if (!total) return "No documents processed yet.";
+
+      const recent = timeseries?.uploads?.slice(-7) || [];
+      const growth = recent.length>1
+        ? ((recent.at(-1)-recent[0]) / Math.max(recent[0],1))*100
+        : 0;
+
+      const bits = [];
+      bits.push(growth>10
+        ? `📈 Uploads increased ${growth.toFixed(1)}% in the last week.`
+        : `📊 Upload volume is stable with ${total} total uploads.`);
+
+      if (high>0) bits.push(`🚨 ${high} high-risk documents detected.`);
+      else if (med>0) bits.push(`🟠 ${med} medium-risk cases found. Monitor closely.`);
+      else bits.push(`🟢 All documents are low risk — great consistency.`);
+
+      if (completeness < 60) bits.push(`⚠️ Average completeness is low (${completeness}%). Consider OCR tuning.`);
+      else if (completeness >= 90) bits.push(`✅ Data extraction confidence is excellent (${completeness}%).`);
+
+      if (unknownDocs>0) bits.push(`🔍 ${unknownDocs} documents could not be classified.`);
+      return bits.join(" ");
+    }
+
+    // 📊 Charts
+    function renderCharts(summary, timeseries) {
+      const ctxU = document.getElementById("uploadsChart");
+      const ctxR = document.getElementById("riskChart");
+      const ctxD = document.getElementById("docChart");
+
+      charts.uploads?.destroy();
+      charts.risk?.destroy();
+      charts.doc?.destroy();
+
+      charts.uploads = new Chart(ctxU, {
+        type:"line",
+        data:{
+          labels: timeseries.days || [],
+          datasets:[
+            {label:"Uploads", data:timeseries.uploads||[], borderColor:"#0078d4", borderWidth:2, fill:false, tension:.25},
+            {label:"Low Risk", data:timeseries.low||[], borderColor:"#00a86b", borderWidth:2, fill:false, tension:.25},
+            {label:"Medium Risk", data:timeseries.medium||[], borderColor:"#ffb300", borderWidth:2, fill:false, tension:.25},
+            {label:"High Risk", data:timeseries.high||[], borderColor:"#d9534f", borderWidth:2, fill:false, tension:.25}
+          ]
+        },
+        options:{responsive:true, plugins:{legend:{position:"bottom"}}}
+      });
+
+      charts.risk = new Chart(ctxR,{
+        type:"pie",
+        data:{
+          labels:["Low","Medium","High"],
+          datasets:[{data:[
+            summary.risk_counts?.Low||0,
+            summary.risk_counts?.Medium||0,
+            summary.risk_counts?.High||0
+          ], backgroundColor:["#00a86b","#ffb300","#d9534f"]}]
+        }
+      });
+
+      const labels = Object.keys(summary.doc_counts||{});
+      const values = Object.values(summary.doc_counts||{});
+      charts.doc = new Chart(ctxD,{
+        type:"doughnut",
+        data:{labels, datasets:[{data:values, backgroundColor:["#0078d4","#ff9900","#00a86b","#777"]}]},
+        options:{plugins:{legend:{position:"bottom"}}}
+      });
+
+      // Stats
+      document.getElementById("totalUploads").textContent = summary.totals?.uploads ?? 0;
+      document.getElementById("avgCompleteness").textContent = `${summary.avg_completeness ?? 0}%`;
+      document.getElementById("lastUpdated").textContent =
+        summary.last_updated ? new Date(summary.last_updated).toLocaleString() : "--";
+    }
+
+    // 🚨 Alerts table
+    function renderAlerts(audit) {
+      const tbody = document.querySelector("#alertsTable tbody");
+      const rows = (audit?.logs || []).map(l=>{
+        const fn = l.file_name || l.filename || "(file)";
+        const doc = l.document_type || "Unknown";
+        const risk = (l.risk_assessment && l.risk_assessment["Risk Level"]) || "Unknown";
+        const note = (l.summary && (l.summary.Note || l.summary["Detected Skills"])) || "";
+        const when = l.timestamp || "";
+        return `<tr>
+          <td title="${fn}">${fn}</td>
+          <td>${doc}</td>
+          <td>${tag(risk)}</td>
+          <td>${note || ""}</td>
+          <td>${when}</td>
+        </tr>`;
+      });
+
+      tbody.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="5">No recent uploads.</td></tr>`;
+    }
+
+    async function loadAll() {
+      try{
+        const [summary, timeseries, audit] = await Promise.all([
+          M.summary(), M.timeseries(), M.audit()
+        ]);
+        renderCharts(summary, timeseries);
+        renderAlerts(audit);
+        document.getElementById("aiInsights").innerHTML =
+          `<strong>AI Insights:</strong> ${generateInsights(summary, timeseries)}`;
+      }catch(err){
+        console.error(err);
+        document.getElementById("aiInsights").textContent = "⚠️ Error loading dashboard.";
+      }
+    }
+
+    // Theme & Auto refresh
+    function setInitialTheme(){
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.body.classList.add("dark");
+      }
+    }
+    function toggleTheme(){
+      document.body.classList.toggle("dark");
+    }
+    function startAuto(){
+      clearInterval(autoTimer);
+      autoTimer = setInterval(loadAll, 15000); // 15s
+      document.getElementById("autoState").textContent = "ON";
+    }
+
+    // Bindings
+    document.getElementById("refreshBtn").addEventListener("click", loadAll);
+    document.getElementById("themeBtn").addEventListener("click", toggleTheme);
+
+    // Boot
+    setInitialTheme();
+    startAuto();
+    loadAll();
+  </script>
+</body>
+</html>

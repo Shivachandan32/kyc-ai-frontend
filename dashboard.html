@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KYC-AI Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary:#0078D4;
+      --bg:#f4f6f8;
+      --card:#fff;
+      --text:#222;
+      --success:#00a86b;
+      --warning:#ffb300;
+      --danger:#d9534f;
+    }
+    body {
+      margin:0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header {
+      padding:16px 24px;
+      background:var(--primary);
+      color:#fff;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 2px 5px rgba(0,0,0,.2);
+    }
+    .container {
+      padding:20px;
+      max-width:1200px;
+      margin:0 auto;
+    }
+    .cards {
+      display:grid;
+      grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+    .card {
+      background:var(--card);
+      border-radius:10px;
+      padding:14px 16px;
+      box-shadow:0 2px 6px rgba(0,0,0,.08);
+    }
+    .title { font-size:14px; opacity:.7; }
+    .value { font-size:28px; font-weight:700; margin-top:4px; }
+    .grid {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:18px;
+    }
+    canvas {
+      background:#fff;
+      border-radius:10px;
+      padding:10px;
+      box-shadow:0 2px 6px rgba(0,0,0,.06);
+    }
+    .muted { font-size:12px; opacity:.6; margin-top:4px; }
+    a.btn {
+      color:#fff;
+      background:#00a86b;
+      padding:8px 12px;
+      border-radius:8px;
+      text-decoration:none;
+      transition: background .2s;
+    }
+    a.btn:hover { background:#008f5f; }
+    #loading {
+      text-align:center;
+      padding:40px;
+      font-size:16px;
+      opacity:.7;
+    }
+    @media (max-width:900px){
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div><strong>KYC-AI</strong> • Analytics Dashboard</div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <a class="btn" href="./index.html">⬅ Back to Uploads</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div id="loading">🔄 Loading analytics...</div>
+    <div id="dashboard" style="display:none;">
+      <div class="cards">
+        <div class="card">
+          <div class="title">Total Uploads</div>
+          <div id="totalUploads" class="value">—</div>
+          <div class="muted" id="lastUpdated">Last updated —</div>
+        </div>
+        <div class="card">
+          <div class="title">Average Completeness</div>
+          <div id="avgCompleteness" class="value">—%</div>
+        </div>
+        <div class="card">
+          <div class="title">Risk Distribution</div>
+          <div class="value"><span id="lowCount">0</span> Low • <span id="medCount">0</span> Med • <span id="highCount">0</span> High</div>
+        </div>
+        <div class="card">
+          <div class="title">Document Types</div>
+          <div class="value"><span id="pan">0</span> PAN • <span id="aadhaar">0</span> Aadhaar • <span id="resume">0</span> Resume</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <h3>📈 Daily Uploads Trend</h3>
+          <canvas id="uploadsChart" height="140"></canvas>
+        </div>
+        <div>
+          <h3>⚖️ Risk Level Over Time</h3>
+          <canvas id="riskChart" height="140"></canvas>
+        </div>
+        <div>
+          <h3>📊 Document Type Mix</h3>
+          <canvas id="docPie" height="220"></canvas>
+        </div>
+        <div>
+          <h3>🧠 Risk Composition</h3>
+          <canvas id="riskPie" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ Live Backend URL (Render)
+    const BASE = "https://kyc-ai-backend.onrender.com";
+    const API_SUMMARY = `${BASE}/dashboard/metrics/summary`;
+    const API_TS = `${BASE}/dashboard/metrics/timeseries?days=14`;
+
+    let uploadsChart, riskChart, docPie, riskPie;
+
+    async function fetchJSON(url){
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+
+    function upsertChart(ctx, type, data, options){
+      if (ctx._chart) {
+        ctx._chart.data = data;
+        ctx._chart.update();
+        return ctx._chart;
+      }
+      ctx._chart = new Chart(ctx, { type, data, options });
+      return ctx._chart;
+    }
+
+    function fmt(n){ return (n ?? 0).toLocaleString(); }
+
+    async function load(){
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("dashboard").style.display = "none";
+
+      try {
+        const [summary, ts] = await Promise.all([
+          fetchJSON(API_SUMMARY),
+          fetchJSON(API_TS)
+        ]);
+
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+
+        document.getElementById("totalUploads").textContent = fmt(summary?.totals?.uploads);
+        document.getElementById("avgCompleteness").textContent = (summary?.avg_completeness ?? 0) + "%";
+        document.getElementById("lastUpdated").textContent = "Last updated " + (summary?.last_updated ?? "—");
+
+        const rc = summary?.risk_counts || {};
+        document.getElementById("lowCount").textContent = fmt(rc.Low);
+        document.getElementById("medCount").textContent = fmt(rc.Medium);
+        document.getElementById("highCount").textContent = fmt(rc.High);
+
+        const dc = summary?.doc_counts || {};
+        document.getElementById("pan").textContent = fmt(dc["PAN Card"]);
+        document.getElementById("aadhaar").textContent = fmt(dc["Aadhaar Card"]);
+        document.getElementById("resume").textContent = fmt(dc["Resume"]);
+
+        const days = ts?.days || [];
+        const uploads = ts?.uploads || [];
+        const low = ts?.low || [];
+        const medium = ts?.medium || [];
+        const high = ts?.high || [];
+
+        upsertChart(document.getElementById("uploadsChart").getContext("2d"), "line", {
+          labels: days,
+          datasets: [{
+            label:"Uploads",
+            data: uploads,
+            borderColor:"#0078D4",
+            backgroundColor:"rgba(0,120,212,0.2)",
+            tension:.3,
+            fill:true
+          }]
+        }, { responsive:true, plugins:{ legend:{ display:false } } });
+
+        upsertChart(document.getElementById("riskChart").getContext("2d"), "line", {
+          labels: days,
+          datasets: [
+            { label:"Low", data: low, borderColor:"#00a86b", backgroundColor:"rgba(0,168,107,0.2)", tension:.3, fill:true },
+            { label:"Medium", data: medium, borderColor:"#ffb300", backgroundColor:"rgba(255,179,0,0.2)", tension:.3, fill:true },
+            { label:"High", data: high, borderColor:"#d9534f", backgroundColor:"rgba(217,83,79,0.2)", tension:.3, fill:true },
+          ]
+        }, { responsive:true, plugins:{ legend:{ position:'bottom' } } });
+
+        upsertChart(document.getElementById("docPie").getContext("2d"), "pie", {
+          labels: ["PAN Card","Aadhaar Card","Resume","Unknown"],
+          datasets: [{
+            data: [dc["PAN Card"]||0, dc["Aadhaar Card"]||0, dc["Resume"]||0, dc["Unknown"]||0],
+            backgroundColor:["#0078D4","#ff9900","#00a86b","#888"]
+          }]
+        }, { responsive:true, plugins:{ legend:{ position:'bottom' } } });
+
+        upsertChart(document.getElementById("riskPie").getContext("2d"), "pie", {
+          labels: ["Low","Medium","High"],
+          datasets: [{
+            data: [rc.Low||0, rc.Medium||0, rc.High||0],
+            backgroundColor:["#00a86b","#ffb300","#d9534f"]
+          }]
+        }, { responsive:true, plugins:{ legend:{ position:'bottom' } } });
+
+      } catch (err) {
+        console.error("Dashboard load error:", err);
+        document.getElementById("loading").innerHTML = "⚠️ Failed to load data. Backend unavailable or API error.";
+      }
+    }
+
+    load();
+    setInterval(load, 30000);
+  </script>
+</body>
+</html>
