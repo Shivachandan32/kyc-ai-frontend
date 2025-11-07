@@ -1,457 +1,402 @@
 <!DOCTYPE html>
 <html lang="en">
-    <p><a href="./dashboard.html" style="text-decoration:none;color:#00a86b;">📊 Open Analytics Dashboard</a></p>
-
 <head>
-    <meta charset="UTF-8">
-    <title>KYC-AI OCR Upload</title>
-    <style>
-        :root {
-            --primary: #0078D4;
-            --success: #00a86b;
-            --warning: #ffb300;
-            --danger: #d9534f;
-            --background-light: #f4f6f8;
-            --text-light: #222;
-            --card-bg-light: #fff;
-            --background-dark: #1e1e1e;
-            --text-dark: #e0e0e0;
-            --card-bg-dark: #2c2c2c;
-        }
+  <meta charset="UTF-8">
+  <title>KYC-AI OCR Upload</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --primary: #0078D4;
+      --success: #00a86b;
+      --warning: #ffb300;
+      --danger: #d9534f;
+      --background-light: #f4f6f8;
+      --text-light: #222;
+      --card-bg-light: #fff;
+      --background-dark: #1e1e1e;
+      --text-dark: #e0e0e0;
+      --card-bg-dark: #2c2c2c;
+    }
 
-        body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            padding: 40px;
-            transition: background 0.3s, color 0.3s;
-            line-height: 1.6;
-        }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      padding: 40px;
+      transition: background 0.3s, color 0.3s;
+      line-height: 1.6;
+    }
 
-        h2 {
-            color: var(--primary);
-        }
+    h2 { color: var(--primary); }
+    form { margin-bottom: 20px; }
 
-        form {
-            margin-bottom: 20px;
-        }
+    input[type="file"] {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: var(--card-bg-light);
+    }
 
-        input[type="file"] {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background-color: var(--card-bg-light);
-        }
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: 0.3s;
+    }
+    button:hover { background-color: #005fa3; }
 
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-left: 10px;
-            transition: 0.3s;
-        }
+    #result {
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 20px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      transition: background 0.3s, color 0.3s;
+    }
 
-        button:hover {
-            background-color: #005fa3;
-        }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      padding: 10px;
+      border-radius: 6px;
+      background: rgba(0,0,0,0.05);
+    }
 
-        #result {
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.1);
-            transition: background 0.3s, color 0.3s;
-        }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 15px;
+    }
 
-        pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            padding: 10px;
-            border-radius: 6px;
-            background: rgba(0,0,0,0.05);
-        }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 10px;
+      text-align: left;
+    }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 15px;
-        }
+    th { background: var(--primary); color: white; }
 
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px 10px;
-            text-align: left;
-        }
+    #downloadBtn {
+      display: none;
+      background-color: var(--success);
+      margin-top: 15px;
+    }
 
-        th {
-            background: var(--primary);
-            color: white;
-        }
+    #downloadBtn:hover { background-color: #007a50; }
 
-        #downloadBtn {
-            display: none;
-            background-color: var(--success);
-            margin-top: 15px;
-        }
+    body.light { background: var(--background-light); color: var(--text-light); }
+    body.dark { background: var(--background-dark); color: var(--text-dark); }
 
-        #downloadBtn:hover {
-            background-color: #007a50;
-        }
+    #preview {
+      margin-top: 10px;
+      max-width: 400px;
+      border-radius: 8px;
+      display: none;
+    }
 
-        body.light {
-            background: var(--background-light);
-            color: var(--text-light);
-        }
+    .risk-low { color: var(--success); font-weight: bold; }
+    .risk-medium { color: var(--warning); font-weight: bold; }
+    .risk-high { color: var(--danger); font-weight: bold; }
 
-        body.dark {
-            background: var(--background-dark);
-            color: var(--text-dark);
-        }
+    .card {
+      background: var(--card-bg-light);
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
 
-        #preview {
-            margin-top: 10px;
-            max-width: 400px;
-            border-radius: 8px;
-            display: none;
-        }
+    @media (max-width: 600px) {
+      body { padding: 20px; }
+      pre { font-size: 13px; }
+    }
 
-        /* 🟢 Risk colors */
-        .risk-low { color: var(--success); font-weight: bold; }
-        .risk-medium { color: var(--warning); font-weight: bold; }
-        .risk-high { color: var(--danger); font-weight: bold; }
+    /* 🔄 Loading Overlay */
+    #loadingOverlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255,255,255,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      font-size: 18px;
+      color: #0078D4;
+    }
 
-        .card {
-            background: var(--card-bg-light);
-            padding: 12px;
-            border-radius: 10px;
-            margin-top: 12px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
+    #spinner {
+      border: 4px solid #ddd;
+      border-top: 4px solid #0078D4;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
 
-        @media (max-width: 600px) {
-            body { padding: 20px; }
-            pre { font-size: 13px; }
-        }
-    </style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 </head>
 
 <body class="light">
-    <h2>📄 KYC-AI OCR Upload</h2>
-    <p>Upload your <strong>PAN</strong>, <strong>Aadhaar</strong>, or <strong>Resume</strong> for OCR & AI Risk Analysis</p>
+  <h2>📄 KYC-AI OCR Upload</h2>
+  <p>
+    Upload your <strong>PAN</strong>, <strong>Aadhaar</strong>, or <strong>Resume</strong> for OCR & AI Risk Analysis
+    • <a href="./dashboard.html" style="text-decoration:none;color:#00a86b;">📊 Open Analytics Dashboard</a>
+  </p>
 
-    <form id="uploadForm">
-        <input type="file" id="fileInput" name="file" accept=".jpg,.jpeg,.png,.pdf" required>
-        <button type="submit">Upload & Extract</button>
-    </form>
+  <form id="uploadForm">
+    <input type="file" id="fileInput" name="file" accept=".jpg,.jpeg,.png,.pdf" required>
+    <button type="submit">Upload & Extract</button>
+  </form>
 
-    <img id="preview" alt="File Preview">
-    <div id="result"></div>
-    <button id="downloadBtn">⬇️ Download JSON</button>
+  <img id="preview" alt="File Preview">
+  <div id="result"></div>
+  <button id="downloadBtn">⬇️ Download JSON</button>
 
-    <script>
-        // 🌗 Theme Detection
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-        const body = document.body;
-        function applyTheme() {
-            body.classList.toggle("dark", prefersDark.matches);
-            body.classList.toggle("light", !prefersDark.matches);
-        }
-        applyTheme();
-        prefersDark.addEventListener("change", applyTheme);
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay">
+    <div id="spinner"></div>
+    <div>Processing your document... please wait</div>
+  </div>
 
-        // 🖼️ Image Preview
-        document.getElementById("fileInput").addEventListener("change", function() {
-            const file = this.files[0];
-            const preview = document.getElementById("preview");
-            if (file && file.type.startsWith("image/")) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    preview.src = e.target.result;
-                    preview.style.display = "block";
-                };
-                reader.readAsDataURL(file);
-            } else preview.style.display = "none";
-        });
+  <script>
+    const API_BASE = "https://kyc-ai-backend.onrender.com";
+    const overlay = document.getElementById("loadingOverlay");
 
-        // 🧠 Upload & Process
-        let latestData = null;
-        document.getElementById("uploadForm").addEventListener("submit", async function (event) {
-            event.preventDefault();
-            const file = document.getElementById("fileInput").files[0];
-            const resultDiv = document.getElementById("result");
-            const downloadBtn = document.getElementById("downloadBtn");
-
-            if (!file) return alert("Please upload a file!");
-            const formData = new FormData();
-            formData.append("file", file);
-
-            resultDiv.innerHTML = "<p>⏳ Extracting and analyzing... Please wait...</p>";
-            downloadBtn.style.display = "none";
-
-            try {
-                const response = await fetch("http://127.0.0.1:8000/upload/", { method: "POST", body: formData });
-                const data = await response.json();
-                latestData = data;
-
-                if (data.error) {
-                    resultDiv.innerHTML = `<p style="color:red;">❌ ${data.error}</p>`;
-                    return;
-                }
-
-                let html = `
-                <h3>📄 Document Type: 
-                    <span style="padding:5px 10px;border-radius:6px;color:white;
-                        background-color:${
-                          data.document_type === 'PAN Card' ? '#0078D4' :
-                          data.document_type === 'Aadhaar Card' ? '#ff9900' :
-                          data.document_type === 'Resume' ? '#00a86b' : '#777'
-                        };">${data.document_type}</span>
-                </h3>
-                <h4>🧠 Extracted Text:</h4>
-                <pre>${data.extracted_text ? data.extracted_text.slice(0, 1000) + (data.extracted_text.length > 1000 ? "..." : "") : "No text detected."}</pre>
-                <h4>📋 Structured Data:</h4>
-                <table><tr><th>Field</th><th>Value</th></tr>`;
-
-                for (const [key, value] of Object.entries(data.structured_data || {}))
-                    html += `<tr><td>${key}</td><td>${value}</td></tr>`;
-                html += `</table>`;
-                if (data.confidence_scores) {
-    html += `<h4>📏 Field Confidence:</h4><table><tr><th>Field</th><th>Confidence (%)</th></tr>`;
-    for (const [key, value] of Object.entries(data.confidence_scores)) {
-        const color = value >= 85 ? "green" : value >= 60 ? "orange" : "red";
-        html += `<tr><td>${key}</td><td style="color:${color};font-weight:bold;">${value}%</td></tr>`;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+    const body = document.body;
+    function applyTheme() {
+      body.classList.toggle("dark", prefersDark.matches);
+      body.classList.toggle("light", !prefersDark.matches);
     }
-    html += `</table>`;
-}
+    applyTheme();
+    prefersDark.addEventListener("change", applyTheme);
 
+    document.getElementById("fileInput").addEventListener("change", function() {
+      const file = this.files[0];
+      const preview = document.getElementById("preview");
+      if (file && file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          preview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      } else preview.style.display = "none";
+    });
 
-                if (data.summary) {
-                    html += `
-                    <div class="card">
-                        <h4>📊 Summary Insights:</h4>
-                        <p>✅ <strong>Fields Extracted:</strong> ${data.summary["Fields Extracted"] || "N/A"}</p>
-                        <p>📈 <strong>Confidence:</strong> ${data.summary["Confidence"] || "N/A"}</p>
-                        <p>💡 <strong>Completeness:</strong> ${data.summary["Completeness (%)"] || "N/A"}%</p>
-                        ${data.summary["Detected Skills"] ? `<p>🧩 <strong>Skills:</strong> ${data.summary["Detected Skills"]}</p>` : ""}
-                    </div>`;
-                }
+    let latestData = null;
+    document.getElementById("uploadForm").addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const file = document.getElementById("fileInput").files[0];
+      const resultDiv = document.getElementById("result");
+      const downloadBtn = document.getElementById("downloadBtn");
 
-                if (data.risk_assessment) {
-                    if (data.fraud_detection) {
-    const f = data.fraud_detection;
-    html += `
-    <h4>🕵️‍♂️ Fraud Detection:</h4>
-    <div style="padding:10px;border-radius:8px;background:var(--card-bg-light);">
-        <p><strong>Fraud Risk:</strong> ${f["Fraud Risk"] || "Unknown"}</p>
-        <p><strong>Tampering Confidence:</strong> ${f["Tampering Confidence (%)"] || 0}%</p>
-        <p><strong>Anomalies:</strong> ${f["Anomalies"] ? f["Anomalies"].join(", ") : "None"}</p>
-    </div>`;
-}
+      if (!file) return alert("Please upload a file!");
+      const formData = new FormData();
+      formData.append("file", file);
 
-                    const level = data.risk_assessment["Risk Level"] || "Unknown";
-                    const riskClass = level === "Low" ? "risk-low" : level === "Medium" ? "risk-medium" : "risk-high";
-                    html += `
-                    <div class="card">
-                        <h4>⚖️ Risk Assessment:</h4>
-                        <p><strong>Risk Level:</strong> <span class="${riskClass}">${level}</span></p>
-                        <p><strong>Completeness:</strong> ${data.risk_assessment["Completeness"]}</p>
-                        <p><strong>Anomalies:</strong> ${data.risk_assessment["Detected Anomalies"]?.join(", ") || "None"}</p>
-                        <p><strong>Reason:</strong> ${data.risk_assessment["Reason"] || "N/A"}</p>
-                    </div>`;
-                }
-                if (data.explanation) {
-  const ex = data.explanation;
-  html += `
-    <div class="card">
-      <h4>🧠 Why this risk?</h4>
-      <p><strong>${ex.headline}</strong></p>
-      ${ex.reasons?.length ? `<p>• ${ex.reasons.join('<br>• ')}</p>` : ''}
-      ${ex.suggestions?.length ? `<p><em>Suggestions:</em><br>– ${ex.suggestions.join('<br>– ')}</p>` : ''}
-    </div>
-  `;
-}
+      overlay.style.display = "flex";
+      resultDiv.innerHTML = "";
+      downloadBtn.style.display = "none";
 
+      try {
+        const response = await fetch(`${API_BASE}/upload/`, { method: "POST", body: formData });
+        const data = await response.json();
+        latestData = data;
+        overlay.style.display = "none";
 
-                resultDiv.innerHTML = html;
-                downloadBtn.style.display = "inline-block";
+        if (data.error) {
+          resultDiv.innerHTML = `<p style="color:red;">❌ ${data.error}</p>`;
+          return;
+        }
 
-            } catch (error) {
-                resultDiv.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
-            }
-        });
+        let html = `
+          <h3>📄 Document Type: 
+            <span style="padding:5px 10px;border-radius:6px;color:white;
+              background-color:${
+                data.document_type === 'PAN Card' ? '#0078D4' :
+                data.document_type === 'Aadhaar Card' ? '#ff9900' :
+                data.document_type === 'Resume' ? '#00a86b' : '#777'
+              };">${data.document_type}</span>
+          </h3>
+          <h4>🧠 Extracted Text:</h4>
+          <pre>${data.extracted_text ? data.extracted_text.slice(0, 1000) + (data.extracted_text.length > 1000 ? "..." : "") : "No text detected."}</pre>
+          <h4>📋 Structured Data:</h4>
+          <table><tr><th>Field</th><th>Value</th></tr>`;
 
-        // 💾 Download JSON
-        document.getElementById("downloadBtn").addEventListener("click", () => {
-            if (!latestData) return;
-            const blob = new Blob([JSON.stringify(latestData, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "extracted_data.json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        });
-    </script>
-    <!-- 🌟 AI Assistant Floating Chat Widget -->
-<div id="chatbot-icon">💬</div>
+        for (const [key, value] of Object.entries(data.structured_data || {}))
+          html += `<tr><td>${key}</td><td>${value}</td></tr>`;
+        html += `</table>`;
 
-<div id="chatbox">
+        if (data.confidence_scores) {
+          html += `<h4>📏 Field Confidence:</h4><table><tr><th>Field</th><th>Confidence (%)</th></tr>`;
+          for (const [key, value] of Object.entries(data.confidence_scores)) {
+            const color = value >= 85 ? "green" : value >= 60 ? "orange" : "red";
+            html += `<tr><td>${key}</td><td style="color:${color};font-weight:bold;">${(value*100).toFixed(1)}%</td></tr>`;
+          }
+          html += `</table>`;
+        }
+
+        if (data.summary) {
+          html += `
+            <div class="card">
+              <h4>📊 Summary Insights:</h4>
+              <p>✅ <strong>Fields Extracted:</strong> ${data.summary["Fields Extracted"] || "N/A"}</p>
+              <p>📈 <strong>Confidence:</strong> ${data.summary["Confidence"] || "N/A"}</p>
+              <p>💡 <strong>Completeness:</strong> ${data.summary["Completeness (%)"] || "N/A"}%</p>
+              ${data.summary["Detected Skills"] ? `<p>🧩 <strong>Skills:</strong> ${data.summary["Detected Skills"]}</p>` : ""}
+            </div>`;
+        }
+
+        if (data.risk_assessment) {
+          const level = data.risk_assessment["Risk Level"] || "Unknown";
+          const riskClass = level === "Low" ? "risk-low" : level === "Medium" ? "risk-medium" : "risk-high";
+          html += `
+            <div class="card">
+              <h4>⚖️ Risk Assessment:</h4>
+              <p><strong>Risk Level:</strong> <span class="${riskClass}">${level}</span></p>
+              <p><strong>Completeness:</strong> ${data.risk_assessment["Completeness"]}</p>
+              <p><strong>Reason:</strong> ${data.risk_assessment["Reason"] || "N/A"}</p>
+            </div>`;
+        }
+
+        if (data.explanation) {
+          const ex = data.explanation;
+          html += `
+            <div class="card">
+              <h4>🧠 Why this risk?</h4>
+              <p><strong>${ex.headline}</strong></p>
+              ${ex.factors?.length ? `<p>• ${ex.factors.join('<br>• ')}</p>` : ''}
+            </div>`;
+        }
+
+        resultDiv.innerHTML = html;
+        downloadBtn.style.display = "inline-block";
+
+      } catch (error) {
+        overlay.style.display = "none";
+        resultDiv.innerHTML = `<p style="color:red;">❌ Error: ${error.message}</p>`;
+      }
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      if (!latestData) return;
+      const blob = new Blob([JSON.stringify(latestData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "extracted_data.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+
+  <!-- 🤖 Floating AI Assistant -->
+  <div id="chatbot-icon">💬</div>
+  <div id="chatbox">
     <div id="chat-header">🤖 KYC-AI Assistant</div>
     <div id="chat-body"></div>
     <div id="chat-input-container">
-        <input type="text" id="chat-input" placeholder="Ask me anything...">
-        <button id="chat-send">Send</button>
+      <input type="text" id="chat-input" placeholder="Ask me anything...">
+      <button id="chat-send">Send</button>
     </div>
-</div>
+  </div>
 
-<style>
-    /* 🌟 Floating Button */
+  <style>
     #chatbot-icon {
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        background-color: #0078D4;
-        color: white;
-        font-size: 24px;
-        border-radius: 50%;
-        width: 55px;
-        height: 55px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        transition: 0.3s;
-        z-index: 1000;
+      position: fixed; bottom: 25px; right: 25px;
+      background-color: #0078D4; color: white;
+      font-size: 24px; border-radius: 50%;
+      width: 55px; height: 55px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: 0.3s; z-index: 1000;
     }
+    #chatbot-icon:hover { background-color: #005fa3; transform: scale(1.05); }
 
-    #chatbot-icon:hover {
-        background-color: #005fa3;
-        transform: scale(1.05);
-    }
-
-    /* 💬 Chatbox */
     #chatbox {
-        position: fixed;
-        bottom: 90px;
-        right: 25px;
-        width: 320px;
-        max-height: 450px;
-        background-color: white;
-        border: 1px solid #ccc;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        display: none;
-        flex-direction: column;
-        overflow: hidden;
-        z-index: 999;
+      position: fixed; bottom: 90px; right: 25px;
+      width: 320px; max-height: 450px; background-color: white;
+      border: 1px solid #ccc; border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      display: none; flex-direction: column; overflow: hidden; z-index: 999;
     }
 
     #chat-header {
-        background-color: #0078D4;
-        color: white;
-        padding: 10px;
-        font-weight: bold;
-        text-align: center;
+      background-color: #0078D4; color: white; padding: 10px;
+      font-weight: bold; text-align: center;
     }
 
     #chat-body {
-        padding: 10px;
-        height: 300px;
-        overflow-y: auto;
-        font-size: 14px;
-        background-color: #f9f9f9;
+      padding: 10px; height: 300px; overflow-y: auto;
+      font-size: 14px; background-color: #f9f9f9;
     }
 
-    #chat-body .user-msg {
-        text-align: right;
-        color: #333;
-        margin: 5px 0;
-    }
-
-    #chat-body .bot-msg {
-        text-align: left;
-        color: #0078D4;
-        margin: 5px 0;
-    }
+    #chat-body .user-msg { text-align: right; margin: 5px 0; }
+    #chat-body .bot-msg { text-align: left; color: #0078D4; margin: 5px 0; }
 
     #chat-input-container {
-        display: flex;
-        padding: 8px;
-        border-top: 1px solid #ccc;
-        background: #f1f1f1;
+      display: flex; padding: 8px; border-top: 1px solid #ccc;
+      background: #f1f1f1;
     }
 
     #chat-input {
-        flex: 1;
-        padding: 8px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        outline: none;
+      flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ccc;
     }
 
     #chat-send {
-        background-color: #0078D4;
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        margin-left: 6px;
+      background-color: #0078D4; color: white; border: none;
+      padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-left: 6px;
     }
 
-    #chat-send:hover {
-        background-color: #005fa3;
-    }
-</style>
+    #chat-send:hover { background-color: #005fa3; }
+  </style>
 
-<script>
+  <script>
     const chatIcon = document.getElementById("chatbot-icon");
     const chatBox = document.getElementById("chatbox");
     const chatInput = document.getElementById("chat-input");
     const chatBody = document.getElementById("chat-body");
     const sendBtn = document.getElementById("chat-send");
 
-    // 🪄 Toggle chat window
     chatIcon.addEventListener("click", () => {
-        chatBox.style.display = chatBox.style.display === "none" ? "flex" : "none";
+      chatBox.style.display = chatBox.style.display === "none" ? "flex" : "none";
     });
 
-    // ✉️ Send message
     async function sendMessage() {
-        const userMsg = chatInput.value.trim();
-        if (!userMsg) return;
+      const userMsg = chatInput.value.trim();
+      if (!userMsg) return;
+      chatBody.innerHTML += `<div class="user-msg"><b>You:</b> ${userMsg}</div>`;
+      chatInput.value = "";
+      chatBody.scrollTop = chatBody.scrollHeight;
 
-        // Show user message
-        chatBody.innerHTML += `<div class="user-msg"><b>You:</b> ${userMsg}</div>`;
-        chatInput.value = "";
+      try {
+        const res = await fetch(`${API_BASE}/assistant/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: userMsg })
+        });
+        const data = await res.json();
+        const botReply = data.response || data.error || "⚠️ No response from AI.";
+        chatBody.innerHTML += `<div class="bot-msg"><b>🤖:</b> ${botReply}</div>`;
         chatBody.scrollTop = chatBody.scrollHeight;
-
-        // Call backend assistant API
-        try {
-            const res = await fetch("http://127.0.0.1:8000/assistant/query", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: userMsg })
-            });
-            const data = await res.json();
-
-            // Display bot response
-            const botReply = data.response || data.error || "⚠️ No response from AI.";
-            chatBody.innerHTML += `<div class="bot-msg"><b>🤖:</b> ${botReply}</div>`;
-            chatBody.scrollTop = chatBody.scrollHeight;
-        } catch (err) {
-            chatBody.innerHTML += `<div class="bot-msg">❌ Error: ${err.message}</div>`;
-        }
+      } catch (err) {
+        chatBody.innerHTML += `<div class="bot-msg">❌ Error: ${err.message}</div>`;
+      }
     }
 
     sendBtn.addEventListener("click", sendMessage);
-    chatInput.addEventListener("keypress", e => {
-        if (e.key === "Enter") sendMessage();
-    });
-</script>
+    chatInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+  </script>
 </body>
 </html>
