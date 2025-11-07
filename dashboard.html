@@ -46,6 +46,10 @@
       border-radius:10px;
       padding:14px 16px;
       box-shadow:0 2px 6px rgba(0,0,0,.08);
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-3px);
     }
     .title { font-size:14px; opacity:.7; }
     .value { font-size:28px; font-weight:700; margin-top:4px; }
@@ -134,11 +138,10 @@
   </div>
 
   <script>
-    // ✅ Live Backend URL (Render)
-    const BASE = "https://kyc-ai-backend.onrender.com";
-    const API_SUMMARY = "https://kyc-ai-backend.onrender.com/dashboard/metrics/summary";
-const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries?days=14";
-
+    // ✅ Use your live backend base URL
+    const BASE_URL = "https://kyc-ai-backend.onrender.com";
+    const API_SUMMARY = `${BASE_URL}/dashboard/metrics/summary`;
+    const API_TS = `${BASE_URL}/dashboard/metrics/timeseries?days=14`;
 
     let uploadsChart, riskChart, docPie, riskPie;
 
@@ -161,8 +164,10 @@ const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries
     function fmt(n){ return (n ?? 0).toLocaleString(); }
 
     async function load(){
-      document.getElementById("loading").style.display = "block";
-      document.getElementById("dashboard").style.display = "none";
+      const loading = document.getElementById("loading");
+      const dashboard = document.getElementById("dashboard");
+      loading.style.display = "block";
+      dashboard.style.display = "none";
 
       try {
         const [summary, ts] = await Promise.all([
@@ -170,8 +175,8 @@ const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries
           fetchJSON(API_TS)
         ]);
 
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("dashboard").style.display = "block";
+        loading.style.display = "none";
+        dashboard.style.display = "block";
 
         document.getElementById("totalUploads").textContent = fmt(summary?.totals?.uploads);
         document.getElementById("avgCompleteness").textContent = (summary?.avg_completeness ?? 0) + "%";
@@ -193,6 +198,7 @@ const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries
         const medium = ts?.medium || [];
         const high = ts?.high || [];
 
+        // Uploads chart
         upsertChart(document.getElementById("uploadsChart").getContext("2d"), "line", {
           labels: days,
           datasets: [{
@@ -205,6 +211,7 @@ const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries
           }]
         }, { responsive:true, plugins:{ legend:{ display:false } } });
 
+        // Risk chart
         upsertChart(document.getElementById("riskChart").getContext("2d"), "line", {
           labels: days,
           datasets: [
@@ -214,6 +221,7 @@ const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries
           ]
         }, { responsive:true, plugins:{ legend:{ position:'bottom' } } });
 
+        // Document pie
         upsertChart(document.getElementById("docPie").getContext("2d"), "pie", {
           labels: ["PAN Card","Aadhaar Card","Resume","Unknown"],
           datasets: [{
@@ -222,6 +230,7 @@ const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries
           }]
         }, { responsive:true, plugins:{ legend:{ position:'bottom' } } });
 
+        // Risk pie
         upsertChart(document.getElementById("riskPie").getContext("2d"), "pie", {
           labels: ["Low","Medium","High"],
           datasets: [{
@@ -232,7 +241,7 @@ const API_TS = "https://kyc-ai-backend.onrender.com/dashboard/metrics/timeseries
 
       } catch (err) {
         console.error("Dashboard load error:", err);
-        document.getElementById("loading").innerHTML = "⚠️ Failed to load data. Backend unavailable or API error.";
+        loading.innerHTML = "⚠️ Failed to load data. Backend unavailable or API error.";
       }
     }
 
