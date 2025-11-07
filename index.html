@@ -240,7 +240,7 @@
           html += `<h4>📏 Field Confidence:</h4><table><tr><th>Field</th><th>Confidence (%)</th></tr>`;
           for (const [key, value] of Object.entries(data.confidence_scores)) {
             const color = value >= 85 ? "green" : value >= 60 ? "orange" : "red";
-            html += `<tr><td>${key}</td><td style="color:${color};font-weight:bold;">${(value*100).toFixed(1)}%</td></tr>`;
+           html += `<tr><td>${key}</td><td style="color:${color};font-weight:bold;">${(value*100 <= 100 ? (value*100).toFixed(1) : value.toFixed(1))}%</td></tr>`;
           }
           html += `</table>`;
         }
